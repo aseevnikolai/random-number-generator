@@ -1,0 +1,44 @@
+# Воспроизводимый запуск:  git clone <репозиторий> && cd random-number-generator
+#                          cp .env.example .env  &&  docker compose up -d
+# Два контейнера: app (приложение) и db (отдельная база PostgreSQL).
+name: rng
+
+services:
+  app:
+    build: .
+    image: rng-app:1.0.0
+    ports:
+      - "${APP_PORT:-8090}:8000"
+    environment:
+      APP_TITLE: ${APP_TITLE:-Генератор случайных чисел}
+      APP_ENV: ${APP_ENV:-compose}
+      DEFAULT_MIN: ${DEFAULT_MIN:-1}
+      DEFAULT_MAX: ${DEFAULT_MAX:-100}
+      HISTORY_LIMIT: ${HISTORY_LIMIT:-10}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-rng}
+      DB_USER: ${POSTGRES_USER:-rng}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env (образец — .env.example)}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Отдельная база данных PostgreSQL. Наружу порт не публикуется: к базе обращается только app.
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rng}
+      POSTGRES_USER: ${POSTGRES_USER:-rng}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в .env (образец — .env.example)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  # данные базы хранятся в именованном томе и переживают пересоздание контейнеров
+  pgdata:
