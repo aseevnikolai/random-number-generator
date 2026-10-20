@@ -1,0 +1,17 @@
+# Несекретные настройки — те же переменные окружения, что в .env для Docker Compose
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rng-config
+  namespace: rng
+data:
+  APP_TITLE: "Генератор случайных чисел"
+  APP_ENV: "kubernetes"
+  DEFAULT_MIN: "1"
+  DEFAULT_MAX: "100"
+  HISTORY_LIMIT: "10"
+  # адрес базы — имя сервиса postgres внутри кластера
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "rng"
+  DB_USER: "rng"

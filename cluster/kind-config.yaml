@@ -1,0 +1,12 @@
+# Локальный учебный кластер: один узел (control-plane) = один Docker-контейнер cloud-control-plane.
+# NodePort 30090 проброшен на localhost:30090 — так приложение открывается в браузере.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cloud
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30090
+        hostPort: 30090
+        listenAddress: "127.0.0.1"
+        protocol: TCP

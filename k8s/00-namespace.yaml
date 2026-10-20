@@ -1,0 +1,5 @@
+# Отдельное пространство имён для приложения и его базы
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rng

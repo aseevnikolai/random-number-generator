@@ -1,0 +1,49 @@
+# Приложение: 2 реплики, настройки — из ConfigMap, пароль к базе — из Secret
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rng-app
+  namespace: rng
+  labels:
+    app: rng-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rng-app
+  template:
+    metadata:
+      labels:
+        app: rng-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: app
+          image: rng-app:1.0.0
+          # образ загружен в кластер kind командой `kind load`, из реестра его не тянем
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: rng-config
+            - secretRef:
+                name: rng-secret
+---
+# Доступ снаружи: NodePort 30090 (в kind проброшен на localhost:30090, см. cluster/kind-config.yaml)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rng-app
+  namespace: rng
+spec:
+  type: NodePort
+  selector:
+    app: rng-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      nodePort: 30090

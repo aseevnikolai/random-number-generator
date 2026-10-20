@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .env
+
+# Рабочий Secret Kubernetes с паролем — не в Git
+k8s/secret.yaml

@@ -1,0 +1,73 @@
+# Отдельная база данных PostgreSQL: постоянный том (PVC), Deployment и внутренний Service
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: rng
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: rng
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  # две копии PostgreSQL не должны одновременно работать с одним томом
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef: { name: rng-config, key: DB_NAME }
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef: { name: rng-config, key: DB_USER }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: rng-secret, key: DB_PASSWORD }
+            # данные — в подкаталоге тома (корень тома может быть не пустым)
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data
+---
+# Внутренний адрес базы postgres:5432 — доступен только внутри кластера
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: rng
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
