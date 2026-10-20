@@ -40,7 +40,10 @@ def init_db(attempts=30):
         raise SystemExit("ОШИБКА: не задана переменная окружения DB_PASSWORD")
     for attempt in range(1, attempts + 1):
         try:
-            with connect() as conn:
+            with connect() as conn, conn.transaction():
+                # Несколько реплик могут стартовать одновременно: без блокировки параллельные
+                # CREATE TABLE IF NOT EXISTS конфликтуют в системном каталоге PostgreSQL.
+                conn.execute("SELECT pg_advisory_xact_lock(20261020)")
                 conn.execute(
                     """CREATE TABLE IF NOT EXISTS numbers (
                            id         SERIAL PRIMARY KEY,
